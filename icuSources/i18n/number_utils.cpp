@@ -111,6 +111,28 @@ const char16_t* utils::getPatternForStyle(const Locale& locale, const char* nsNa
     return pattern;
 }
 
+#if APPLE_ICU_CHANGES
+// rdar://126991186 (Problems with grouping in unum_ functions when specifying patterns)
+// Apple moves this function here from number_grouping.cpp so that it can be made avaible
+// outside number_grouping.cpp
+int16_t utils::getMinGroupingForLocale(const Locale& locale) {
+    // TODO: Cache this?
+    UErrorCode localStatus = U_ZERO_ERROR;
+    LocalUResourceBundlePointer bundle(ures_open(nullptr, locale.getName(), &localStatus));
+    int32_t resultLen = 0;
+    const char16_t* result = ures_getStringByKeyWithFallback(
+        bundle.getAlias(),
+        "NumberElements/minimumGroupingDigits",
+        &resultLen,
+        &localStatus);
+    // TODO: Is it safe to assume resultLen == 1? Would locales set minGrouping >= 10?
+    if (U_FAILURE(localStatus) || resultLen != 1) {
+        return 1;
+    }
+    return result[0] - u'0';
+}
+#endif // APPLE_ICU_CHANGES
+
 
 DecNum::DecNum() {
     uprv_decContextDefault(&fContext, DEC_INIT_BASE);

@@ -10,9 +10,7 @@
 
 #if !UCONFIG_NO_FORMATTING
 
-#if U_HAVE_ATOMICS
 #include <atomic>
-#endif
 #include <_foundation_unicode/appendable.h>
 #include <_foundation_unicode/fieldpos.h>
 #include <_foundation_unicode/formattedvalue.h>
@@ -79,9 +77,7 @@ struct UFormattedNumberRangeImpl;
 } // namespace icu::number
 U_NAMESPACE_END
 
-#if U_HAVE_ATOMICS
 template struct U_I18N_API std::atomic< U_NAMESPACE_QUALIFIER number::impl::NumberRangeFormatterImpl*>;
-#endif
 
 U_NAMESPACE_BEGIN
 namespace number {  // icu::number
@@ -466,11 +462,18 @@ class U_I18N_API UnlocalizedNumberRangeFormatter
     explicit UnlocalizedNumberRangeFormatter(
             NumberRangeFormatterSettings<UnlocalizedNumberRangeFormatter>&& src) noexcept;
 
+    explicit UnlocalizedNumberRangeFormatter(const impl::RangeMacroProps &macros);
+
+    explicit UnlocalizedNumberRangeFormatter(impl::RangeMacroProps &&macros);
+
     // To give the fluent setters access to this class's constructor:
     friend class NumberRangeFormatterSettings<UnlocalizedNumberRangeFormatter>;
 
     // To give NumberRangeFormatter::with() access to this class's constructor:
     friend class NumberRangeFormatter;
+
+    // To give LNRF::withoutLocale() access to this class's constructor:
+    friend class LocalizedNumberRangeFormatter;
 };
 
 /**
@@ -499,6 +502,25 @@ class U_I18N_API LocalizedNumberRangeFormatter
      */
     FormattedNumberRange formatFormattableRange(
         const Formattable& first, const Formattable& second, UErrorCode& status) const;
+
+#ifndef U_HIDE_DRAFT_API
+    /**
+     * Disassociate the locale from this formatter.
+     *
+     * @return The fluent chain.
+     * @draft ICU 75
+     */
+    UnlocalizedNumberRangeFormatter withoutLocale() const &;
+
+    /**
+     * Overload of withoutLocale() for use on an rvalue reference.
+     *
+     * @return The fluent chain.
+     * @see #withoutLocale
+     * @draft ICU 75
+     */
+    UnlocalizedNumberRangeFormatter withoutLocale() &&;
+#endif // U_HIDE_DRAFT_API
 
     /**
      * Default constructor: puts the formatter into a valid but undefined state.
@@ -557,11 +579,7 @@ class U_I18N_API LocalizedNumberRangeFormatter
     ~LocalizedNumberRangeFormatter();
 
   private:
-#if U_HAVE_ATOMICS
     std::atomic<impl::NumberRangeFormatterImpl*> fAtomicFormatter = {};
-#else
-    impl::NumberRangeFormatterImpl* fAtomicFormatter = nullptr;
-#endif
 
     const impl::NumberRangeFormatterImpl* getFormatter(UErrorCode& stauts) const;
 

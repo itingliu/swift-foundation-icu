@@ -213,8 +213,10 @@ NumberFormatterImpl::macrosToMicroGenerator(const MacroProps& macros, bool safe,
 // (always?) ns and nsName are both null (DecimalFormatSymbols will get NumberingSystem from locale).
             (ns != nullptr)?
             new DecimalFormatSymbols(macros.locale, *ns, macros.forDateFormat, status):
-#endif  // APPLE_ICU_CHANGES
+            new DecimalFormatSymbols(macros.locale, status), status);
+#else
             new DecimalFormatSymbols(macros.locale, *ns, status), status);
+#endif  // APPLE_ICU_CHANGES
         if (U_FAILURE(status)) {
             return nullptr;
         }
@@ -266,7 +268,7 @@ NumberFormatterImpl::macrosToMicroGenerator(const MacroProps& macros, bool safe,
             return nullptr;
         }
     }
-    auto patternInfo = new ParsedPatternInfo();
+    auto* patternInfo = new ParsedPatternInfo();
     if (patternInfo == nullptr) {
         status = U_MEMORY_ALLOCATION_ERROR;
         return nullptr;
@@ -289,12 +291,12 @@ NumberFormatterImpl::macrosToMicroGenerator(const MacroProps& macros, bool safe,
             status = U_ILLEGAL_ARGUMENT_ERROR;
             return nullptr;
         }
-        auto usagePrefsHandler =
+        auto* usagePrefsHandler =
             new UsagePrefsHandler(macros.locale, macros.unit, macros.usage.fValue, chain, status);
         fUsagePrefsHandler.adoptInsteadAndCheckErrorCode(usagePrefsHandler, status);
         chain = fUsagePrefsHandler.getAlias();
     } else if (isMixedUnit) {
-        auto unitConversionHandler = new UnitConversionHandler(macros.unit, chain, status);
+        auto* unitConversionHandler = new UnitConversionHandler(macros.unit, chain, status);
         fUnitConversionHandler.adoptInsteadAndCheckErrorCode(unitConversionHandler, status);
         chain = fUnitConversionHandler.getAlias();
     }
@@ -370,7 +372,8 @@ NumberFormatterImpl::macrosToMicroGenerator(const MacroProps& macros, bool safe,
 
     // Inner modifier (scientific notation)
     if (macros.notation.fType == Notation::NTN_SCIENTIFIC) {
-        auto newScientificHandler = new ScientificHandler(&macros.notation, fMicros.simple.symbols, chain);
+        auto* newScientificHandler =
+            new ScientificHandler(&macros.notation, fMicros.simple.symbols, chain);
         if (newScientificHandler == nullptr) {
             status = U_MEMORY_ALLOCATION_ERROR;
             return nullptr;
@@ -383,7 +386,7 @@ NumberFormatterImpl::macrosToMicroGenerator(const MacroProps& macros, bool safe,
     }
 
     // Middle modifier (patterns, positive/negative, currency symbols, percent)
-    auto patternModifier = new MutablePatternModifier(false);
+    auto* patternModifier = new MutablePatternModifier(false);
     if (patternModifier == nullptr) {
         status = U_MEMORY_ALLOCATION_ERROR;
         return nullptr;
@@ -481,7 +484,7 @@ NumberFormatterImpl::macrosToMicroGenerator(const MacroProps& macros, bool safe,
     if (isCompactNotation) {
         CompactType compactType = (isCurrency && unitWidth != UNUM_UNIT_WIDTH_FULL_NAME)
                                   ? CompactType::TYPE_CURRENCY : CompactType::TYPE_DECIMAL;
-        auto newCompactHandler = new CompactHandler(
+        auto* newCompactHandler = new CompactHandler(
             macros.notation.fUnion.compactStyle,
             macros.locale,
             nsName,

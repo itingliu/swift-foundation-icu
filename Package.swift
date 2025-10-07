@@ -101,5 +101,5 @@ let package = Package(
       linkerSettings: linkerSettings
     )
   ],
-  cxxLanguageStandard: .cxx14
+  cxxLanguageStandard: .cxx17
 )

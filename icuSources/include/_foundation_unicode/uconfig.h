@@ -101,11 +101,7 @@
 #ifndef U_DISABLE_RENAMING
 #if APPLE_ICU_CHANGES
 //rdar://60884991 #58 Replace installsrc patching with changes directly in header files
-#if defined(__APPLE__)
 #define U_DISABLE_RENAMING 1
-#else
-#define U_DISABLE_RENAMING 0
-#endif
 #else
 #define U_DISABLE_RENAMING 0
 #endif // APPLE_ICU_CHANGES
@@ -430,6 +426,17 @@
  */
 #ifndef UCONFIG_NO_FORMATTING
 #   define UCONFIG_NO_FORMATTING 0
+#endif
+
+/**
+ * \def UCONFIG_NO_MF2
+ * This switch turns off the experimental MessageFormat 2.0 API.
+ *
+ * @internal ICU 75 technology preview
+ * @deprecated This API is for technology preview only.
+ */
+#ifndef UCONFIG_NO_MF2
+#   define UCONFIG_NO_MF2 0
 #endif
 
 /**

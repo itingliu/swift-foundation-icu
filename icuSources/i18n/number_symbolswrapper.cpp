@@ -68,13 +68,6 @@ void SymbolsWrapper::doCopyFrom(const SymbolsWrapper &other) {
             fPtr.dfs = nullptr;
         }
         break;
-#if APPLE_ICU_CHANGES
-// rdar:/
-    case SYMPTR_DFS_SHALLOWCOPY: // Apple rdar://49955427
-        // DecimalFormatSymbols pointer copy, do not clone
-        fPtr.dfs = other.fPtr.dfs;
-        break;
-#endif  // APPLE_ICU_CHANGES
     case SYMPTR_NS:
         // Memory allocation failures are exposed in copyErrorTo()
         if (other.fPtr.ns != nullptr) {
@@ -93,10 +86,6 @@ void SymbolsWrapper::doMoveFrom(SymbolsWrapper &&src) {
         // No action necessary
         break;
     case SYMPTR_DFS:
-#if APPLE_ICU_CHANGES
-// rdar:/
-    case SYMPTR_DFS_SHALLOWCOPY:
-#endif  // APPLE_ICU_CHANGES
         fPtr.dfs = src.fPtr.dfs;
         src.fPtr.dfs = nullptr;
         break;
@@ -115,12 +104,6 @@ void SymbolsWrapper::doCleanup() {
     case SYMPTR_DFS:
         delete fPtr.dfs;
         break;
-#if APPLE_ICU_CHANGES
-// rdar:/
-    case SYMPTR_DFS_SHALLOWCOPY: // Apple rdar://49955427
-        // No action necessary
-        break;
-#endif  // APPLE_ICU_CHANGES
     case SYMPTR_NS:
         delete fPtr.ns;
         break;
@@ -144,19 +127,5 @@ const NumberingSystem *SymbolsWrapper::getNumberingSystem() const {
     U_ASSERT(fType == SYMPTR_NS);
     return fPtr.ns;
 }
-
-#if APPLE_ICU_CHANGES
-// rdar:/
-// Apple rdar://49955427
-void SymbolsWrapper::setDFSShallowCopy(UBool shallow) {
-    if (shallow) {
-        if (fType == SYMPTR_DFS) {
-            fType = SYMPTR_DFS_SHALLOWCOPY;
-        }
-    } else if (fType == SYMPTR_DFS_SHALLOWCOPY) {
-        fType = SYMPTR_DFS;
-    }
-}
-#endif  // APPLE_ICU_CHANGES
 
 #endif /* #if !UCONFIG_NO_FORMATTING */

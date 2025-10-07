@@ -267,10 +267,19 @@ static UBool isAvailableLocaleListInitialized(UErrorCode &status) {
 
 namespace {
 
-static const struct {
+const struct {
     const char *name;
     UColAttribute attr;
 } collAttributes[] = {
+#ifdef APPLE_ICU_CHANGES // rdar://128395409
+    { "colstrength", UCOL_STRENGTH },
+    { "colbackwards", UCOL_FRENCH_COLLATION },
+    { "colcaselevel", UCOL_CASE_LEVEL },
+    { "colcasefirst", UCOL_CASE_FIRST },
+    { "colalternate", UCOL_ALTERNATE_HANDLING },
+    { "colnormalization", UCOL_NORMALIZATION_MODE },
+    { "colnumeric", UCOL_NUMERIC_COLLATION }
+#else
     { "colStrength", UCOL_STRENGTH },
     { "colBackwards", UCOL_FRENCH_COLLATION },
     { "colCaseLevel", UCOL_CASE_LEVEL },
@@ -278,9 +287,10 @@ static const struct {
     { "colAlternate", UCOL_ALTERNATE_HANDLING },
     { "colNormalization", UCOL_NORMALIZATION_MODE },
     { "colNumeric", UCOL_NUMERIC_COLLATION }
+#endif
 };
 
-static const struct {
+const struct {
     const char *name;
     UColAttributeValue value;
 } collAttributeValues[] = {
@@ -298,7 +308,7 @@ static const struct {
     { "upper", UCOL_UPPER_FIRST }
 };
 
-static const char *collReorderCodes[UCOL_REORDER_CODE_LIMIT - UCOL_REORDER_CODE_FIRST] = {
+const char* collReorderCodes[UCOL_REORDER_CODE_LIMIT - UCOL_REORDER_CODE_FIRST] = {
     "space", "punct", "symbol", "currency", "digit"
 };
 
@@ -313,6 +323,220 @@ int32_t getReorderCode(const char *s) {
     // Avoid introducing synonyms/aliases.
     return -1;
 }
+
+#ifdef APPLE_ICU_CHANGES // rdar://128395409
+
+#define ULOC_KEYWORD_BUFFER_LEN 25
+#define ULOC_VALUE_BUFFER_LEN 1024 // The reordering value could be long.
+static const char * getNextLocaleKeywordAndValue(const char* pos, char *keyword, char *value, UErrorCode *status) {
+    int32_t numKeywords = 0;
+    int32_t valueLen;
+    const char* equalSign = nullptr;
+    const char* semicolon = nullptr;
+    const char* valueStart;
+    int32_t i = 0, j, n;
+    char prev;
+
+    /* this code was adapted from ulocimp_getKeywords() */
+    /* pos should already be past the '@' in the locale string */
+
+    /* we will grab pairs, trim spaces, lowercase keywords */
+
+    /* skip leading spaces */
+    while(*pos == ' ') {
+        pos++;
+    }
+    if (!*pos) { /* handle trailing "; " */
+        return pos;
+    }
+    equalSign = uprv_strchr(pos, '=');
+    semicolon = uprv_strchr(pos, ';');
+    /* lack of '=' [foo@currency] is illegal */
+    /* ';' before '=' [foo@currency;collation=pinyin] is illegal */
+    if(!equalSign || (semicolon && semicolon<equalSign)) {
+        *status = U_INVALID_FORMAT_ERROR;
+        return pos;
+    }
+    /* need to normalize both keyword and keyword name */
+    if(equalSign - pos >= ULOC_KEYWORD_BUFFER_LEN) {
+        /* keyword name too long for internal buffer */
+        *status = U_INTERNAL_PROGRAM_ERROR;
+        return pos;
+    }
+    for(i = 0, n = 0; i < equalSign - pos; ++i) {
+        if (pos[i] != ' ') {
+            keyword[n++] = uprv_tolower(pos[i]);
+        }
+    }
+
+    /* zero-length keyword is an error. */
+    if (n == 0) {
+        *status = U_INVALID_FORMAT_ERROR;
+        return pos;
+    }
+
+    keyword[n] = 0;
+
+    /* now grab the value part. First we skip the '=' */
+    equalSign++;
+    /* then we skip leading spaces */
+    while(*equalSign == ' ') {
+        equalSign++;
+    }
+
+    /* Premature end or zero-length value */
+    if (!*equalSign || equalSign == semicolon) {
+        *status = U_INVALID_FORMAT_ERROR;
+        return pos;
+    }
+
+    valueStart = equalSign;
+
+    pos = semicolon;
+    i = 0;
+    if(pos) {
+        while(*(pos - i - 1) == ' ') {
+            i++;
+        }
+        valueLen = (int32_t)(pos - equalSign - i);
+        pos++;
+    } else {
+        i = (int32_t)uprv_strlen(equalSign);
+        while(i && equalSign[i-1] == ' ') {
+            i--;
+        }
+        valueLen = i;
+    }
+
+    /* now copy the value */
+    if (valueLen > ULOC_VALUE_BUFFER_LEN) {
+        /* value too long for internal buffer */
+        *status = U_INTERNAL_PROGRAM_ERROR;
+        return pos;
+    }
+    strncpy(value, valueStart, valueLen);
+    value[valueLen] = 0;
+
+    return pos;
+}
+
+/**
+ * Sets collation attributes according to locale keywords. See
+ * http://www.unicode.org/reports/tr35/tr35-collation.html#Collation_Settings
+ *
+ * Using "alias" keywords and values where defined:
+ * http://www.unicode.org/reports/tr35/tr35.html#Old_Locale_Extension_Syntax
+ * http://unicode.org/repos/cldr/trunk/common/bcp47/collation.xml
+ */
+void setAttributesFromKeywords(const Locale &loc, Collator &coll, UErrorCode &errorCode) {
+    if (U_FAILURE(errorCode)) {
+        return;
+    }
+    if (uprv_strcmp(loc.getName(), loc.getBaseName()) == 0) {
+        // No keywords.
+        return;
+    }
+    
+    char keyword[ULOC_KEYWORD_BUFFER_LEN];
+    char value[ULOC_VALUE_BUFFER_LEN];
+    const char *pos;
+    
+    pos = loc.getName();
+    while (*pos && *pos != '@') {
+        pos++;
+    }
+    if (*pos == '@') {
+        pos++;
+    }
+    if (*pos == 0) {
+        return;
+    }
+
+    while(pos && *pos) {
+        bool no_match = true;
+
+        pos = getNextLocaleKeywordAndValue(pos, keyword, value, &errorCode);
+        if (U_FAILURE(errorCode)) {
+            return;
+        }
+        
+        // Check for collation keywords that were already deprecated
+        // before any were supported in createInstance() (except for "collation").
+        if(uprv_strcmp(keyword, "collation") == 0) {
+            continue;
+        }
+        if(uprv_strcmp(keyword, "colhiraganaquaternary") == 0) {
+            errorCode = U_UNSUPPORTED_ERROR;
+            return;
+        }
+        if(uprv_strcmp(keyword, "variabletop") == 0) {
+            errorCode = U_UNSUPPORTED_ERROR;
+            return;
+        }
+        
+        // Parse known collation keywords, ignore others.
+        for (int32_t i = 0; i < UPRV_LENGTHOF(collAttributes); ++i) {
+            if(uprv_strcmp(keyword, collAttributes[i].name) == 0) {
+                for (int32_t j = 0;; ++j) {
+                    if (j == UPRV_LENGTHOF(collAttributeValues)) {
+                        errorCode = U_ILLEGAL_ARGUMENT_ERROR;
+                        return;
+                    }
+                    if (uprv_stricmp(value, collAttributeValues[j].name) == 0) {
+                        coll.setAttribute(collAttributes[i].attr, collAttributeValues[j].value, errorCode);
+                        break;
+                    }
+                }
+                no_match = false;
+                break;
+            }
+        }
+        if(no_match && uprv_strcmp(keyword, "colreorder") == 0) {
+            int32_t codes[USCRIPT_CODE_LIMIT + (UCOL_REORDER_CODE_LIMIT - UCOL_REORDER_CODE_FIRST)];
+            int32_t codesLength = 0;
+            char *scriptName = value;
+            for (;;) {
+                if (codesLength == UPRV_LENGTHOF(codes)) {
+                    errorCode = U_ILLEGAL_ARGUMENT_ERROR;
+                    return;
+                }
+                char *limit = scriptName;
+                char c;
+                while ((c = *limit) != 0 && c != '-') { ++limit; }
+                *limit = 0;
+                int32_t code;
+                if ((limit - scriptName) == 4) {
+                    // Strict parsing, accept only 4-letter script codes, not long names.
+                    code = u_getPropertyValueEnum(UCHAR_SCRIPT, scriptName);
+                } else {
+                    code = getReorderCode(scriptName);
+                }
+                if (code < 0) {
+                    errorCode = U_ILLEGAL_ARGUMENT_ERROR;
+                    return;
+                }
+                codes[codesLength++] = code;
+                if (c == 0) { break; }
+                scriptName = limit + 1;
+            }
+            coll.setReorderCodes(codes, codesLength, errorCode);
+            no_match = false;
+        }
+        if(no_match && uprv_strcmp(keyword, "kv") == 0) {
+            int32_t code = getReorderCode(value);
+            if (code < 0) {
+                errorCode = U_ILLEGAL_ARGUMENT_ERROR;
+                return;
+            }
+            coll.setMaxVariable((UColReorderCode)code, errorCode);
+        }
+        if (U_FAILURE(errorCode)) {
+            errorCode = U_ILLEGAL_ARGUMENT_ERROR;
+        }
+    }
+}
+
+#else
 
 /**
  * Sets collation attributes according to locale keywords. See
@@ -419,13 +643,14 @@ void setAttributesFromKeywords(const Locale &loc, Collator &coll, UErrorCode &er
             errorCode = U_ILLEGAL_ARGUMENT_ERROR;
             return;
         }
-        coll.setMaxVariable((UColReorderCode)code, errorCode);
+        coll.setMaxVariable(static_cast<UColReorderCode>(code), errorCode);
     }
     if (U_FAILURE(errorCode)) {
         errorCode = U_ILLEGAL_ARGUMENT_ERROR;
     }
 }
 
+#endif // APPLE_ICU_CHANGES
 }  // namespace
 
 Collator* U_EXPORT2 Collator::createInstance(UErrorCode& success) 
@@ -437,7 +662,7 @@ Collator* U_EXPORT2 Collator::createInstance(const Locale& desiredLocale,
                                    UErrorCode& status)
 {
     if (U_FAILURE(status)) 
-        return 0;
+        return nullptr;
     if (desiredLocale.isBogus()) {
         // Locale constructed from malformed locale ID or language tag.
         status = U_ILLEGAL_ARGUMENT_ERROR;
@@ -517,7 +742,7 @@ Collator::EComparisonResult Collator::compare(const UnicodeString& source,
                                     const UnicodeString& target) const
 {
     UErrorCode ec = U_ZERO_ERROR;
-    return (EComparisonResult)compare(source, target, ec);
+    return static_cast<EComparisonResult>(compare(source, target, ec));
 }
 
 // implement deprecated, previously abstract method
@@ -526,7 +751,7 @@ Collator::EComparisonResult Collator::compare(const UnicodeString& source,
                                     int32_t length) const
 {
     UErrorCode ec = U_ZERO_ERROR;
-    return (EComparisonResult)compare(source, target, length, ec);
+    return static_cast<EComparisonResult>(compare(source, target, length, ec));
 }
 
 // implement deprecated, previously abstract method
@@ -535,7 +760,7 @@ Collator::EComparisonResult Collator::compare(const char16_t* source, int32_t so
                                     const
 {
     UErrorCode ec = U_ZERO_ERROR;
-    return (EComparisonResult)compare(source, sourceLength, target, targetLength, ec);
+    return static_cast<EComparisonResult>(compare(source, sourceLength, target, targetLength, ec));
 }
 
 UCollationResult Collator::compare(UCharIterator &/*sIter*/,
@@ -858,7 +1083,7 @@ public:
         if(index < availableLocaleListCount) {
             result = availableLocaleList[index++].getName();
             if(resultLength != nullptr) {
-                *resultLength = (int32_t)uprv_strlen(result);
+                *resultLength = static_cast<int32_t>(uprv_strlen(result));
             }
         } else {
             if(resultLength != nullptr) {
@@ -939,13 +1164,13 @@ Collator::getFunctionalEquivalent(const char* keyword, const Locale& locale,
 Collator::ECollationStrength
 Collator::getStrength() const {
     UErrorCode intStatus = U_ZERO_ERROR;
-    return (ECollationStrength)getAttribute(UCOL_STRENGTH, intStatus);
+    return static_cast<ECollationStrength>(getAttribute(UCOL_STRENGTH, intStatus));
 }
 
 void
 Collator::setStrength(ECollationStrength newStrength) {
     UErrorCode intStatus = U_ZERO_ERROR;
-    setAttribute(UCOL_STRENGTH, (UColAttributeValue)newStrength, intStatus);
+    setAttribute(UCOL_STRENGTH, static_cast<UColAttributeValue>(newStrength), intStatus);
 }
 
 Collator &

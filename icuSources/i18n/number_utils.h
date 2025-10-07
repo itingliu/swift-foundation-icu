@@ -21,8 +21,7 @@
 
 U_NAMESPACE_BEGIN
 
-namespace number {
-namespace impl {
+namespace number::impl {
 
 enum CldrPatternStyle {
     CLDR_PATTERN_STYLE_DECIMAL,
@@ -100,10 +99,14 @@ inline StandardPlural::Form getPluralSafe(
     return getStandardPlural(rules, copy);
 }
 
+#if APPLE_ICU_CHANGES
+// rdar://126991186 (Problems with grouping in unum_ functions when specifying patterns)
+int16_t getMinGroupingForLocale(const Locale& locale);
+#endif
+
 } // namespace utils
 
-} // namespace impl
-} // namespace number
+} // namespace number::impl
 
 U_NAMESPACE_END
 

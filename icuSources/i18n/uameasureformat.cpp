@@ -11,6 +11,7 @@
 #include <stdlib.h>
 #include <_foundation_unicode/uameasureformat.h>
 #include <_foundation_unicode/fieldpos.h>
+#include <_foundation_unicode/localebuilder.h>
 #include <_foundation_unicode/localpointer.h>
 #include <_foundation_unicode/numfmt.h>
 #include <_foundation_unicode/measunit.h>
@@ -354,47 +355,6 @@ static void resolveUsageAlias(CharString& category,
     }
 }
 
-// internal function for uameasfmt_getUnitsForUsage()
-static void resolveLocaleRegion(const char* locale,
-                                const char* category,
-                                char* region,
-                                UErrorCode* status) {
-    if (U_FAILURE(*status)) {
-        return;
-    }
-    
-    const int32_t kKeyValueMax = 15;
-    UErrorCode localStatus;
-    UBool usedOverride = false;
-    // First check for ms overrides, except in certain categories
-    if (uprv_strcmp(category, "concentr") != 0 && uprv_strcmp(category, "duration") != 0) {
-        char msValue[kKeyValueMax + 1];
-        localStatus = U_ZERO_ERROR;
-        int32_t msValueLen = uloc_getKeywordValue(locale, "measure", msValue, kKeyValueMax, &localStatus);
-        if (U_FAILURE(localStatus) || msValueLen <= 2) {
-            // I don't think an old-style locale ID with "ms" is technically legal, but continue to support it for backward compatibility
-            localStatus = U_ZERO_ERROR;
-            msValueLen = uloc_getKeywordValue(locale, "ms", msValue, kKeyValueMax, &localStatus);
-        }
-        if (U_SUCCESS(localStatus) && msValueLen> 2) {
-            msValue[kKeyValueMax] = 0; // ensure termination
-            if (uprv_strcmp(msValue, "metric") == 0) {
-                uprv_strcpy(region, "001");
-                usedOverride = true;
-            } else if (uprv_strcmp(msValue, "ussystem") == 0) {
-                uprv_strcpy(region, "US");
-                usedOverride = true;
-            } else if (uprv_strcmp(msValue, "uksystem") == 0) {
-                uprv_strcpy(region, "GB");
-                usedOverride = true;
-            }
-        }
-    }
-    if (!usedOverride) {
-        (void)ulocimp_getRegionForSupplementalData(locale, true, region, ULOC_COUNTRY_CAPACITY, status);
-    }
-}
-
 U_CAPI int32_t U_EXPORT2
 uameasfmt_getUnitsForUsage( const char*     locale,
                             const char*     category,
@@ -408,21 +368,22 @@ uameasfmt_getUnitsForUsage( const char*     locale,
     int32_t entryOffset;
     resolveUsageAlias(resolvedCategory, resolvedUsage, entryOffset, *status);
     
-    // Get region to use; this has to be done after resolveUsageAlias
-    char region[ULOC_COUNTRY_CAPACITY];
-    resolveLocaleRegion(locale, resolvedCategory.data(), region, status);
-    if (U_FAILURE(*status)) {
-        return 0;
-    }
-
     LocalPointer<UnitPreferences> prefsGetter(new UnitPreferences(*status), *status);
     if (U_FAILURE(*status)) {
         return 0;
     }
     
-    // rdar://97937093 Integrate ICU 72: Update the following per changes in https://github.com/unicode-org/icu/pull/2182
-    Locale regLoc("und", region);    
-    auto prefs = prefsGetter->getPreferencesFor(resolvedCategory.data(), resolvedUsage.data(), regLoc, *status);
+    // TODO: If https://unicode-org.atlassian.net/browse/ICU-22717 gets accepted and fixed, we can remove this whole clause
+    LocaleBuilder lb;
+    Locale tempLocale(locale);
+    lb.setLocale(tempLocale);
+    if (uprv_strlen(tempLocale.getCountry()) == 0) {
+        CharString region = ulocimp_getRegionForSupplementalData(locale, true, *status);
+        lb.setRegion(region.data());
+    }
+    tempLocale = lb.build(*status);
+    
+    auto prefs = prefsGetter->getPreferencesFor(resolvedCategory.data(), resolvedUsage.data(), tempLocale, *status);
     if (U_FAILURE(*status) || prefs.length() <= 0) {
         return 0;
     }

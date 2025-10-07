@@ -100,6 +100,7 @@ target_sources(_FoundationICU
         gregocal.cpp
         gregoimp.cpp
         hebrwcal.cpp
+        hinducal.cpp
         icuin40shim.cpp
         indiancal.cpp
         inputext.cpp
@@ -111,6 +112,17 @@ target_sources(_FoundationICU
         measunit.cpp
         measunit_extra.cpp
         measure.cpp
+        messageformat2.cpp
+        messageformat2_arguments.cpp
+        messageformat2_checker.cpp
+        messageformat2_data_model.cpp
+        messageformat2_errors.cpp
+        messageformat2_evaluation.cpp
+        messageformat2_formattable.cpp
+        messageformat2_formatter.cpp
+        messageformat2_function_registry.cpp
+        messageformat2_parser.cpp
+        messageformat2_serializer.cpp
         msgfmt.cpp
         name2uni.cpp
         nfrs.cpp
@@ -217,6 +229,7 @@ target_sources(_FoundationICU
         tztrans.cpp
         uameasureformat.cpp
         uatimeunitformat.cpp
+        uatimezone.cpp
         ucal.cpp
         ucln_in.cpp
         ucol.cpp

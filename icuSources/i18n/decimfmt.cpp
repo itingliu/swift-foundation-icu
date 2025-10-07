@@ -74,7 +74,12 @@ DecimalFormat::DecimalFormat(const UnicodeString& pattern, DecimalFormatSymbols*
                              UErrorCode& status)
         : DecimalFormat(symbolsToAdopt, status) {
     if (U_FAILURE(status)) { return; }
+#if APPLE_ICU_CHANGES
+// rdar://126991186 (Problems with grouping in unum_ functions when specifying patterns)
+    setPropertiesFromPattern(pattern, IGNORE_ROUNDING_IF_CURRENCY, symbolsToAdopt->getLocale(), status);
+#else
     setPropertiesFromPattern(pattern, IGNORE_ROUNDING_IF_CURRENCY, status);
+#endif
     touch(status);
 }
 
@@ -89,10 +94,18 @@ DecimalFormat::DecimalFormat(const UnicodeString& pattern, DecimalFormatSymbols*
         style == UNumberFormatStyle::UNUM_CASH_CURRENCY ||
         style == UNumberFormatStyle::UNUM_CURRENCY_STANDARD ||
         style == UNumberFormatStyle::UNUM_CURRENCY_PLURAL) {
+#if APPLE_ICU_CHANGES
+// rdar://126991186 (Problems with grouping in unum_ functions when specifying patterns)
+        setPropertiesFromPattern(pattern, IGNORE_ROUNDING_ALWAYS, symbolsToAdopt->getLocale(), status);
+    } else {
+        setPropertiesFromPattern(pattern, IGNORE_ROUNDING_IF_CURRENCY, symbolsToAdopt->getLocale(), status);
+    }
+#else
         setPropertiesFromPattern(pattern, IGNORE_ROUNDING_ALWAYS, status);
     } else {
         setPropertiesFromPattern(pattern, IGNORE_ROUNDING_IF_CURRENCY, status);
     }
+#endif // APPLE_ICU_CHANGES
     // Note: in Java, CurrencyPluralInfo is set in NumberFormat.java, but in C++, it is not set there,
     // so we have to set it here.
     if (style == UNumberFormatStyle::UNUM_CURRENCY_PLURAL) {
@@ -215,7 +228,7 @@ DecimalFormat::setAttribute(UNumberFormatAttribute attr, int32_t newValue, UErro
             break;
 
         case UNUM_ROUNDING_MODE:
-            setRoundingMode((DecimalFormat::ERoundingMode) newValue);
+            setRoundingMode(static_cast<DecimalFormat::ERoundingMode>(newValue));
             break;
 
         case UNUM_FORMAT_WIDTH:
@@ -224,7 +237,7 @@ DecimalFormat::setAttribute(UNumberFormatAttribute attr, int32_t newValue, UErro
 
         case UNUM_PADDING_POSITION:
             /** The position at which padding will take place. */
-            setPadPosition((DecimalFormat::EPadPosition) newValue);
+            setPadPosition(static_cast<DecimalFormat::EPadPosition>(newValue));
             break;
 
         case UNUM_SECONDARY_GROUPING_SIZE:
@@ -233,20 +246,20 @@ DecimalFormat::setAttribute(UNumberFormatAttribute attr, int32_t newValue, UErro
 
 #if UCONFIG_HAVE_PARSEALLINPUT
         case UNUM_PARSE_ALL_INPUT:
-            setParseAllInput((UNumberFormatAttributeValue) newValue);
+            setParseAllInput(static_cast<UNumberFormatAttributeValue>(newValue));
             break;
 #endif
 
         case UNUM_PARSE_NO_EXPONENT:
-            setParseNoExponent((UBool) newValue);
+            setParseNoExponent(static_cast<UBool>(newValue));
             break;
 
         case UNUM_PARSE_DECIMAL_MARK_REQUIRED:
-            setDecimalPatternMatchRequired((UBool) newValue);
+            setDecimalPatternMatchRequired(static_cast<UBool>(newValue));
             break;
 
         case UNUM_CURRENCY_USAGE:
-            setCurrencyUsage((UCurrencyUsage) newValue, &status);
+            setCurrencyUsage(static_cast<UCurrencyUsage>(newValue), &status);
             break;
 
         case UNUM_MINIMUM_GROUPING_DIGITS:
@@ -399,6 +412,19 @@ void DecimalFormat::setGroupingUsed(UBool enabled) {
     if (UBOOL_TO_BOOL(enabled) == fields->properties.groupingUsed) { return; }
     NumberFormat::setGroupingUsed(enabled); // to set field for compatibility
     fields->properties.groupingUsed = enabled;
+#if APPLE_ICU_CHANGES
+    // rdar://126991186 (Problems with grouping in unum_ functions when specifying patterns)
+    if (fields->properties.groupingSize < 1) {
+        // if the formatter was created with a pattern that didn't include the grouping separator,
+        // the groupingSize field gets set to -1 because the pattern didn't include any information
+        // on the grouping size.  If we subsequently turn grouping on, we won't get it because
+        // the grouping size is still -1.  There's no good way to get the actual grouping size for
+        // the locale because it's stored in the locale's default pattern.  Since it's almost always
+        // 3, just go ahead and default it to 3 and expect the caller to manually set the grouping
+        // size if they want something else.
+        fields->properties.groupingSize = 3;
+    }
+#endif
     touchNoError();
 }
 
@@ -428,7 +454,12 @@ DecimalFormat::DecimalFormat(const UnicodeString& pattern, DecimalFormatSymbols*
         : DecimalFormat(symbolsToAdopt, status) {
     if (U_FAILURE(status)) { return; }
     // TODO: What is parseError for?
+#if APPLE_ICU_CHANGES
+// rdar://126991186 (Problems with grouping in unum_ functions when specifying patterns)
+    setPropertiesFromPattern(pattern, IGNORE_ROUNDING_IF_CURRENCY, symbolsToAdopt->getLocale(), status);
+#else
     setPropertiesFromPattern(pattern, IGNORE_ROUNDING_IF_CURRENCY, status);
+#endif
     touch(status);
 }
 
@@ -446,7 +477,12 @@ DecimalFormat::DecimalFormat(const UnicodeString& pattern, const DecimalFormatSy
         return;
     }
     fields->symbols.adoptInstead(dfs.orphan());
+#if APPLE_ICU_CHANGES
+// rdar://126991186 (Problems with grouping in unum_ functions when specifying patterns)
+    setPropertiesFromPattern(pattern, IGNORE_ROUNDING_IF_CURRENCY, symbols.getLocale(), status);
+#else
     setPropertiesFromPattern(pattern, IGNORE_ROUNDING_IF_CURRENCY, status);
+#endif
     touch(status);
 }
 
@@ -504,13 +540,8 @@ DecimalFormat& DecimalFormat::operator=(const DecimalFormat& rhs) {
 DecimalFormat::~DecimalFormat() {
     if (fields == nullptr) { return; }
 
-#if U_HAVE_ATOMICS
     delete fields->atomicParser.exchange(nullptr);
     delete fields->atomicCurrencyParser.exchange(nullptr);
-#else
-    delete fields->atomicParser;
-    delete fields->atomicCurrencyParser;
-#endif
     delete fields;
 }
 
@@ -527,7 +558,7 @@ DecimalFormat* DecimalFormat::clone() const {
 }
 
 bool DecimalFormat::operator==(const Format& other) const {
-    auto* otherDF = dynamic_cast<const DecimalFormat*>(&other);
+    const auto* otherDF = dynamic_cast<const DecimalFormat*>(&other);
     if (otherDF == nullptr) {
         return false;
     }
@@ -1691,16 +1722,6 @@ const number::LocalizedNumberFormatter* DecimalFormat::toNumberFormatter(UErrorC
     return &fields->formatter;
 }
 
-#if APPLE_ICU_CHANGES
-// rdar:/
-// Apple rdar://49955427
-void DecimalFormat::setDFSShallowCopy(UBool shallow) {
-    if (fields != nullptr) {
-        fields->formatter.setDFSShallowCopy(shallow);
-    }
-}
-
-#endif  // APPLE_ICU_CHANGES
 /** Rebuilds the formatter object from the property bag. */
 void DecimalFormat::touch(UErrorCode& status) {
     if (U_FAILURE(status)) {
@@ -1739,13 +1760,8 @@ void DecimalFormat::touch(UErrorCode& status) {
     setupFastFormat();
 
     // Delete the parsers if they were made previously
-#if U_HAVE_ATOMICS
     delete fields->atomicParser.exchange(nullptr);
     delete fields->atomicCurrencyParser.exchange(nullptr);
-#else
-    delete fields->atomicParser;
-    delete fields->atomicCurrencyParser;
-#endif
 
     // In order for the getters to work, we need to populate some fields in NumberFormat.
 #if APPLE_ICU_CHANGES
@@ -1790,6 +1806,18 @@ void DecimalFormat::setPropertiesFromPattern(const UnicodeString& pattern, int32
     }
 }
 
+#if APPLE_ICU_CHANGES
+// rdar://126991186 (Problems with grouping in unum_ functions when specifying patterns)
+void DecimalFormat::setPropertiesFromPattern(const UnicodeString& pattern, int32_t ignoreRounding,
+                                             const Locale& locale, UErrorCode& status) {
+    setPropertiesFromPattern(pattern, ignoreRounding, status);
+    
+    if (U_SUCCESS(status)) {
+        fields->properties.minimumGroupingDigits = utils::getMinGroupingForLocale(locale);
+    }
+}
+#endif
+
 const numparse::impl::NumberParserImpl* DecimalFormat::getParser(UErrorCode& status) const {
     // TODO: Move this into umutex.h? (similar logic also in numrange_fluent.cpp)
     // See ICU-20146
@@ -1799,11 +1827,7 @@ const numparse::impl::NumberParserImpl* DecimalFormat::getParser(UErrorCode& sta
     }
 
     // First try to get the pre-computed parser
-#if U_HAVE_ATOMICS
     auto* ptr = fields->atomicParser.load();
-#else
-    auto* ptr = fields->atomicParser;
-#endif
     if (ptr != nullptr) {
         return ptr;
     }
@@ -1822,7 +1846,6 @@ const numparse::impl::NumberParserImpl* DecimalFormat::getParser(UErrorCode& sta
     // it is set to what is actually stored in the atomic
     // if another thread beat us to computing the parser object.
     auto* nonConstThis = const_cast<DecimalFormat*>(this);
-#if U_HAVE_ATOMICS
     if (!nonConstThis->fields->atomicParser.compare_exchange_strong(ptr, temp)) {
         // Another thread beat us to computing the parser
         delete temp;
@@ -1831,21 +1854,13 @@ const numparse::impl::NumberParserImpl* DecimalFormat::getParser(UErrorCode& sta
         // Our copy of the parser got stored in the atomic
         return temp;
     }
-#else
-    nonConstThis->fields->atomicParser = temp;
-    return temp;
-#endif
 }
 
 const numparse::impl::NumberParserImpl* DecimalFormat::getCurrencyParser(UErrorCode& status) const {
     if (U_FAILURE(status)) { return nullptr; }
 
     // First try to get the pre-computed parser
-#if U_HAVE_ATOMICS
     auto* ptr = fields->atomicCurrencyParser.load();
-#else
-    auto* ptr = fields->atomicCurrencyParser;
-#endif
     if (ptr != nullptr) {
         return ptr;
     }
@@ -1860,7 +1875,6 @@ const numparse::impl::NumberParserImpl* DecimalFormat::getCurrencyParser(UErrorC
     // Note: ptr starts as nullptr; during compare_exchange, it is set to what is actually stored in the
     // atomic if another thread beat us to computing the parser object.
     auto* nonConstThis = const_cast<DecimalFormat*>(this);
-#if U_HAVE_ATOMICS
     if (!nonConstThis->fields->atomicCurrencyParser.compare_exchange_strong(ptr, temp)) {
         // Another thread beat us to computing the parser
         delete temp;
@@ -1869,10 +1883,6 @@ const numparse::impl::NumberParserImpl* DecimalFormat::getCurrencyParser(UErrorC
         // Our copy of the parser got stored in the atomic
         return temp;
     }
-#else
-    nonConstThis->fields->atomicCurrencyParser = temp;
-    return temp;
-#endif
 }
 
 void
