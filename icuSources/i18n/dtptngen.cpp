@@ -2113,6 +2113,7 @@ DateTimePatternGenerator::localeUsesLongDayPeriods(const Locale& locale) {
     // is enabled or we're running the tests.  BUT: We previously enabled long day period names in Traditional Chinese,
     // with rdar://106179361, with a different implementation.  So for zh_Hant, this function always returns true,
     // and for all other languages we check this flag.
+#if U_PLATFORM_IS_DARWIN_BASED
     const char *progname = getprogname();
     bool featureEnabled = os_feature_enabled(ICU, longDayPeriodNames);
     if (uprv_strcmp(progname, "cintltst") == 0 || uprv_strcmp(progname, "intltest") == 0 || uprv_strcmp(progname, "xctest") == 0) {
@@ -2152,6 +2153,7 @@ DateTimePatternGenerator::localeUsesLongDayPeriods(const Locale& locale) {
             }
         }
     }
+#endif
     return false;
 }
 #endif  // APPLE_ICU_CHANGES
