@@ -4101,7 +4101,7 @@ double CalendarAstronomer::timeFromMoment(double tee) const {
 
 // Trigonometry
 double CalendarAstronomer::sinDegrees(const Angle& angle) const {
-    return std::sin(angle.degrees * M_PI / 180.0 + angle.minutes * M_PI / (180.0 * 60.0) + angle.seconds * M_PI / (180.0 * 3600.0));
+    return std::sin(angle.degrees * PI / 180.0 + angle.minutes * PI / (180.0 * 60.0) + angle.seconds * PI / (180.0 * 3600.0));
 }
 
 double CalendarAstronomer::hinduSineTable(int32_t entry) const {
