@@ -416,7 +416,7 @@ LocalizedNumberRangeFormatter::getFormatter(UErrorCode& status) const {
     }
 #else
     nonConstThis->fAtomicFormatter = temp.getAlias();
-    return temp;
+    return temp.getAlias();
 #endif
 
 }
