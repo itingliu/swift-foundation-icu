@@ -18,9 +18,7 @@
 #include "numparse_impl.h"
 
 U_NAMESPACE_BEGIN
-namespace number {
-namespace impl {
-
+namespace number::impl {
 
 class AutoAffixPatternProvider;
 class CurrencyPluralInfoAffixProvider;
@@ -144,9 +142,9 @@ class AutoAffixPatternProvider {
     }
 
     inline void setTo(const AffixPatternProvider* provider, UErrorCode& status) {
-        if (auto ptr = dynamic_cast<const PropertiesAffixPatternProvider*>(provider)) {
+        if (const auto* ptr = dynamic_cast<const PropertiesAffixPatternProvider*>(provider)) {
             propertiesAPP = *ptr;
-        } else if (auto ptr = dynamic_cast<const CurrencyPluralInfoAffixProvider*>(provider)) {
+        } else if (const auto* ptr = dynamic_cast<const CurrencyPluralInfoAffixProvider*>(provider)) {
             currencyPluralInfoAPP = *ptr;
         } else {
             status = U_INTERNAL_PROGRAM_ERROR;
@@ -267,9 +265,7 @@ class NumberPropertyMapper {
                                DecimalFormatProperties* exportedProperties, UErrorCode& status);
 };
 
-
-} // namespace impl
-} // namespace numparse
+} // namespace number::impl
 U_NAMESPACE_END
 
 #endif //__NUMBER_MAPPER_H__

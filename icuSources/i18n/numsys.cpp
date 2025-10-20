@@ -16,6 +16,10 @@
 */
 
 #include <_foundation_unicode/utypes.h>
+#if APPLE_ICU_CHANGES
+// rdar://116185298 (D74/21C15: Arabic numerals (1,2,3..) should be set as default when language of device is changed to Arabic instead of Arabic-Indic numerals (٣،٢،١))
+#include <_foundation_unicode/localebuilder.h>
+#endif
 #include <_foundation_unicode/localpointer.h>
 #include <_foundation_unicode/uchar.h>
 #include <_foundation_unicode/unistr.h>
@@ -27,6 +31,10 @@
 #include "cstring.h"
 #include "uassert.h"
 #include "ucln_in.h"
+#if APPLE_ICU_CHANGES
+// rdar://116185298 (D74/21C15: Arabic numerals (1,2,3..) should be set as default when language of device is changed to Arabic instead of Arabic-Indic numerals (٣،٢،١))
+#include "ulocimp.h"
+#endif
 #include "umutex.h"
 #include "uresimp.h"
 #include "numsys_impl.h"
@@ -139,8 +147,31 @@ NumberingSystem::createInstance(const Locale & inLocale, UErrorCode& status) {
 
     if (!nsResolved) { // Resolve the numbering system ( default, native, traditional or finance ) into a "real" numbering system
         UErrorCode localStatus = U_ZERO_ERROR;
+#if APPLE_ICU_CHANGES
+// rdar://116185298 (D74/21C15: Arabic numerals (1,2,3..) should be set as default when language of device is changed to Arabic instead of Arabic-Indic numerals (٣،٢،١))
+// Additional changes for rdar://130919763 (CrystalSeed ☂: Mr Investment (投資先生) Crashes on launch 1382114621)
+        Locale adjustedLocale = inLocale;
+        CharString region = ulocimp_getRegionForSupplementalData(inLocale.getName(), false, status);
+        if (!region.isEmpty()) {
+            UErrorCode localStatus2 = U_ZERO_ERROR;
+            LocaleBuilder builder;
+            // TODO: We should be calling builder.setLocale() here, but it chokes on various locale IDs we're actually using in our unit tests.
+            // I filed https://unicode-org.atlassian.net/browse/ICU-22744 for this problem.
+//            builder.setLocale(inLocale);
+builder.setLanguage(inLocale.getLanguage());
+builder.setScript(inLocale.getScript());
+            builder.setRegion(region.data());
+            Locale tempLocale = builder.build(localStatus2);
+            if (U_SUCCESS(localStatus2)) {
+                adjustedLocale = tempLocale;
+            }
+        }
+        LocalUResourceBundlePointer resource(ures_open(nullptr, adjustedLocale.getName(), &localStatus));
+#else
         LocalUResourceBundlePointer resource(ures_open(nullptr, inLocale.getName(), &localStatus));
+#endif // APPLE_ICU_CHANGES
         LocalUResourceBundlePointer numberElementsRes(ures_getByKey(resource.getAlias(), gNumberElements, nullptr, &localStatus));
+        
         // Don't stomp on the catastrophic failure of OOM.
         if (localStatus == U_MEMORY_ALLOCATION_ERROR) {
             status = U_MEMORY_ALLOCATION_ERROR;
@@ -258,7 +289,7 @@ void NumberingSystem::setDesc(const UnicodeString &d) {
 }
 void NumberingSystem::setName(const char *n) {
     if ( n == nullptr ) {
-        name[0] = (char) 0;
+        name[0] = static_cast<char>(0);
     } else {
         uprv_strncpy(name,n,kInternalNumSysNameCapacity);
         name[kInternalNumSysNameCapacity] = '\0'; // Make sure it is null terminated.
@@ -320,7 +351,6 @@ U_CFUNC void initNumsysNames(UErrorCode &status) {
     if (U_SUCCESS(status)) {
         gNumsysNames = numsysNames.orphan();
     }
-    return;
 }
 
 }   // end anonymous namespace
@@ -338,7 +368,7 @@ NumsysNameEnumeration::NumsysNameEnumeration(UErrorCode& status) : pos(0) {
 const UnicodeString*
 NumsysNameEnumeration::snext(UErrorCode& status) {
     if (U_SUCCESS(status) && (gNumsysNames != nullptr) && (pos < gNumsysNames->size())) {
-        return (const UnicodeString*)gNumsysNames->elementAt(pos++);
+        return static_cast<const UnicodeString*>(gNumsysNames->elementAt(pos++));
     }
     return nullptr;
 }

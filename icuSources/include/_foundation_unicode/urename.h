@@ -274,6 +274,7 @@
 #define u_getDataVersion swift_u_getDataVersion
 #define u_getDefaultConverter swift_u_getDefaultConverter
 #define u_getFC_NFKC_Closure swift_u_getFC_NFKC_Closure
+#define u_getIDTypes swift_u_getIDTypes
 #define u_getISOComment swift_u_getISOComment
 #define u_getIntPropertyMap swift_u_getIntPropertyMap
 #define u_getIntPropertyMaxValue swift_u_getIntPropertyMaxValue
@@ -291,6 +292,7 @@
 #define u_getVersion swift_u_getVersion
 #define u_get_stdout swift_u_get_stdout
 #define u_hasBinaryProperty swift_u_hasBinaryProperty
+#define u_hasIDType swift_u_hasIDType
 #define u_init swift_u_init
 #define u_isIDIgnorable swift_u_isIDIgnorable
 #define u_isIDPart swift_u_isIDPart
@@ -490,6 +492,7 @@
 #define ubiditransform_close swift_ubiditransform_close
 #define ubiditransform_open swift_ubiditransform_open
 #define ubiditransform_transform swift_ubiditransform_transform
+#define ublock_addPropertyStarts swift_ublock_addPropertyStarts
 #define ublock_getCode swift_ublock_getCode
 #define ubrk_clone swift_ubrk_clone
 #define ubrk_close swift_ubrk_close
@@ -991,6 +994,7 @@
 #define uhash_compareCaselessUnicodeString swift_uhash_compareCaselessUnicodeString
 #define uhash_compareChars swift_uhash_compareChars
 #define uhash_compareIChars swift_uhash_compareIChars
+#define uhash_compareIStringView swift_uhash_compareIStringView
 #define uhash_compareLong swift_uhash_compareLong
 #define uhash_compareScriptSet swift_uhash_compareScriptSet
 #define uhash_compareUChars swift_uhash_compareUChars
@@ -1008,6 +1012,7 @@
 #define uhash_hashCaselessUnicodeString swift_uhash_hashCaselessUnicodeString
 #define uhash_hashChars swift_uhash_hashChars
 #define uhash_hashIChars swift_uhash_hashIChars
+#define uhash_hashIStringView swift_uhash_hashIStringView
 #define uhash_hashLong swift_uhash_hashLong
 #define uhash_hashScriptSet swift_uhash_hashScriptSet
 #define uhash_hashUChars swift_uhash_hashUChars
@@ -1194,21 +1199,29 @@
 #define ulocimp_canonicalize swift_ulocimp_canonicalize
 #define ulocimp_forLanguageTag swift_ulocimp_forLanguageTag
 #define ulocimp_getBaseName swift_ulocimp_getBaseName
-#define ulocimp_getCountry swift_ulocimp_getCountry
 #define ulocimp_getKeywordValue swift_ulocimp_getKeywordValue
 #define ulocimp_getKeywords swift_ulocimp_getKeywords
 #define ulocimp_getKnownCanonicalizedLocaleForTest swift_ulocimp_getKnownCanonicalizedLocaleForTest
 #define ulocimp_getLanguage swift_ulocimp_getLanguage
 #define ulocimp_getName swift_ulocimp_getName
+#define ulocimp_getParent swift_ulocimp_getParent
+#define ulocimp_getRegion swift_ulocimp_getRegion
 #define ulocimp_getRegionForSupplementalData swift_ulocimp_getRegionForSupplementalData
 #define ulocimp_getScript swift_ulocimp_getScript
+#define ulocimp_getSubtags swift_ulocimp_getSubtags
+#define ulocimp_getVariant swift_ulocimp_getVariant
 #define ulocimp_isCanonicalizedLocaleForTest swift_ulocimp_isCanonicalizedLocaleForTest
 #define ulocimp_minimizeSubtags swift_ulocimp_minimizeSubtags
+#define ulocimp_setKeywordValue swift_ulocimp_setKeywordValue
 #define ulocimp_toBcpKey swift_ulocimp_toBcpKey
+#define ulocimp_toBcpKeyWithFallback swift_ulocimp_toBcpKeyWithFallback
 #define ulocimp_toBcpType swift_ulocimp_toBcpType
+#define ulocimp_toBcpTypeWithFallback swift_ulocimp_toBcpTypeWithFallback
 #define ulocimp_toLanguageTag swift_ulocimp_toLanguageTag
 #define ulocimp_toLegacyKey swift_ulocimp_toLegacyKey
+#define ulocimp_toLegacyKeyWithFallback swift_ulocimp_toLegacyKeyWithFallback
 #define ulocimp_toLegacyType swift_ulocimp_toLegacyType
+#define ulocimp_toLegacyTypeWithFallback swift_ulocimp_toLegacyTypeWithFallback
 #define ultag_getTKeyStart swift_ultag_getTKeyStart
 #define ultag_isExtensionSubtags swift_ultag_isExtensionSubtags
 #define ultag_isLanguageSubtag swift_ultag_isLanguageSubtag
@@ -1769,6 +1782,8 @@
 #define uset_getSerializedRange swift_uset_getSerializedRange
 #define uset_getSerializedRangeCount swift_uset_getSerializedRangeCount
 #define uset_getSerializedSet swift_uset_getSerializedSet
+#define uset_getString swift_uset_getString
+#define uset_getStringCount swift_uset_getStringCount
 #define uset_hasStrings swift_uset_hasStrings
 #define uset_indexOf swift_uset_indexOf
 #define uset_isEmpty swift_uset_isEmpty
@@ -1802,11 +1817,11 @@
 #define usnum_multiplyByPowerOfTen swift_usnum_multiplyByPowerOfTen
 #define usnum_openForInt64 swift_usnum_openForInt64
 #define usnum_roundTo swift_usnum_roundTo
+#define usnum_setMaximumIntegerDigits swift_usnum_setMaximumIntegerDigits
 #define usnum_setMinimumFractionDigits swift_usnum_setMinimumFractionDigits
 #define usnum_setMinimumIntegerDigits swift_usnum_setMinimumIntegerDigits
 #define usnum_setSign swift_usnum_setSign
 #define usnum_setToInt64 swift_usnum_setToInt64
-#define usnum_truncateStart swift_usnum_truncateStart
 #define usnumf_close swift_usnumf_close
 #define usnumf_format swift_usnumf_format
 #define usnumf_formatInt64 swift_usnumf_formatInt64
@@ -2239,6 +2254,7 @@
 #define u_getDataVersion U_ICU_ENTRY_POINT_RENAME(u_getDataVersion)
 #define u_getDefaultConverter U_ICU_ENTRY_POINT_RENAME(u_getDefaultConverter)
 #define u_getFC_NFKC_Closure U_ICU_ENTRY_POINT_RENAME(u_getFC_NFKC_Closure)
+#define u_getIDTypes U_ICU_ENTRY_POINT_RENAME(u_getIDTypes)
 #define u_getISOComment U_ICU_ENTRY_POINT_RENAME(u_getISOComment)
 #define u_getIntPropertyMap U_ICU_ENTRY_POINT_RENAME(u_getIntPropertyMap)
 #define u_getIntPropertyMaxValue U_ICU_ENTRY_POINT_RENAME(u_getIntPropertyMaxValue)
@@ -2256,6 +2272,7 @@
 #define u_getVersion U_ICU_ENTRY_POINT_RENAME(u_getVersion)
 #define u_get_stdout U_ICU_ENTRY_POINT_RENAME(u_get_stdout)
 #define u_hasBinaryProperty U_ICU_ENTRY_POINT_RENAME(u_hasBinaryProperty)
+#define u_hasIDType U_ICU_ENTRY_POINT_RENAME(u_hasIDType)
 #define u_init U_ICU_ENTRY_POINT_RENAME(u_init)
 #define u_isIDIgnorable U_ICU_ENTRY_POINT_RENAME(u_isIDIgnorable)
 #define u_isIDPart U_ICU_ENTRY_POINT_RENAME(u_isIDPart)
@@ -2455,6 +2472,7 @@
 #define ubiditransform_close U_ICU_ENTRY_POINT_RENAME(ubiditransform_close)
 #define ubiditransform_open U_ICU_ENTRY_POINT_RENAME(ubiditransform_open)
 #define ubiditransform_transform U_ICU_ENTRY_POINT_RENAME(ubiditransform_transform)
+#define ublock_addPropertyStarts U_ICU_ENTRY_POINT_RENAME(ublock_addPropertyStarts)
 #define ublock_getCode U_ICU_ENTRY_POINT_RENAME(ublock_getCode)
 #define ubrk_clone U_ICU_ENTRY_POINT_RENAME(ubrk_clone)
 #define ubrk_close U_ICU_ENTRY_POINT_RENAME(ubrk_close)
@@ -2956,6 +2974,7 @@
 #define uhash_compareCaselessUnicodeString U_ICU_ENTRY_POINT_RENAME(uhash_compareCaselessUnicodeString)
 #define uhash_compareChars U_ICU_ENTRY_POINT_RENAME(uhash_compareChars)
 #define uhash_compareIChars U_ICU_ENTRY_POINT_RENAME(uhash_compareIChars)
+#define uhash_compareIStringView U_ICU_ENTRY_POINT_RENAME(uhash_compareIStringView)
 #define uhash_compareLong U_ICU_ENTRY_POINT_RENAME(uhash_compareLong)
 #define uhash_compareScriptSet U_ICU_ENTRY_POINT_RENAME(uhash_compareScriptSet)
 #define uhash_compareUChars U_ICU_ENTRY_POINT_RENAME(uhash_compareUChars)
@@ -2973,6 +2992,7 @@
 #define uhash_hashCaselessUnicodeString U_ICU_ENTRY_POINT_RENAME(uhash_hashCaselessUnicodeString)
 #define uhash_hashChars U_ICU_ENTRY_POINT_RENAME(uhash_hashChars)
 #define uhash_hashIChars U_ICU_ENTRY_POINT_RENAME(uhash_hashIChars)
+#define uhash_hashIStringView U_ICU_ENTRY_POINT_RENAME(uhash_hashIStringView)
 #define uhash_hashLong U_ICU_ENTRY_POINT_RENAME(uhash_hashLong)
 #define uhash_hashScriptSet U_ICU_ENTRY_POINT_RENAME(uhash_hashScriptSet)
 #define uhash_hashUChars U_ICU_ENTRY_POINT_RENAME(uhash_hashUChars)
@@ -3159,21 +3179,29 @@
 #define ulocimp_canonicalize U_ICU_ENTRY_POINT_RENAME(ulocimp_canonicalize)
 #define ulocimp_forLanguageTag U_ICU_ENTRY_POINT_RENAME(ulocimp_forLanguageTag)
 #define ulocimp_getBaseName U_ICU_ENTRY_POINT_RENAME(ulocimp_getBaseName)
-#define ulocimp_getCountry U_ICU_ENTRY_POINT_RENAME(ulocimp_getCountry)
 #define ulocimp_getKeywordValue U_ICU_ENTRY_POINT_RENAME(ulocimp_getKeywordValue)
 #define ulocimp_getKeywords U_ICU_ENTRY_POINT_RENAME(ulocimp_getKeywords)
 #define ulocimp_getKnownCanonicalizedLocaleForTest U_ICU_ENTRY_POINT_RENAME(ulocimp_getKnownCanonicalizedLocaleForTest)
 #define ulocimp_getLanguage U_ICU_ENTRY_POINT_RENAME(ulocimp_getLanguage)
 #define ulocimp_getName U_ICU_ENTRY_POINT_RENAME(ulocimp_getName)
+#define ulocimp_getParent U_ICU_ENTRY_POINT_RENAME(ulocimp_getParent)
+#define ulocimp_getRegion U_ICU_ENTRY_POINT_RENAME(ulocimp_getRegion)
 #define ulocimp_getRegionForSupplementalData U_ICU_ENTRY_POINT_RENAME(ulocimp_getRegionForSupplementalData)
 #define ulocimp_getScript U_ICU_ENTRY_POINT_RENAME(ulocimp_getScript)
+#define ulocimp_getSubtags U_ICU_ENTRY_POINT_RENAME(ulocimp_getSubtags)
+#define ulocimp_getVariant U_ICU_ENTRY_POINT_RENAME(ulocimp_getVariant)
 #define ulocimp_isCanonicalizedLocaleForTest U_ICU_ENTRY_POINT_RENAME(ulocimp_isCanonicalizedLocaleForTest)
 #define ulocimp_minimizeSubtags U_ICU_ENTRY_POINT_RENAME(ulocimp_minimizeSubtags)
+#define ulocimp_setKeywordValue U_ICU_ENTRY_POINT_RENAME(ulocimp_setKeywordValue)
 #define ulocimp_toBcpKey U_ICU_ENTRY_POINT_RENAME(ulocimp_toBcpKey)
+#define ulocimp_toBcpKeyWithFallback U_ICU_ENTRY_POINT_RENAME(ulocimp_toBcpKeyWithFallback)
 #define ulocimp_toBcpType U_ICU_ENTRY_POINT_RENAME(ulocimp_toBcpType)
+#define ulocimp_toBcpTypeWithFallback U_ICU_ENTRY_POINT_RENAME(ulocimp_toBcpTypeWithFallback)
 #define ulocimp_toLanguageTag U_ICU_ENTRY_POINT_RENAME(ulocimp_toLanguageTag)
 #define ulocimp_toLegacyKey U_ICU_ENTRY_POINT_RENAME(ulocimp_toLegacyKey)
+#define ulocimp_toLegacyKeyWithFallback U_ICU_ENTRY_POINT_RENAME(ulocimp_toLegacyKeyWithFallback)
 #define ulocimp_toLegacyType U_ICU_ENTRY_POINT_RENAME(ulocimp_toLegacyType)
+#define ulocimp_toLegacyTypeWithFallback U_ICU_ENTRY_POINT_RENAME(ulocimp_toLegacyTypeWithFallback)
 #define ultag_getTKeyStart U_ICU_ENTRY_POINT_RENAME(ultag_getTKeyStart)
 #define ultag_isExtensionSubtags U_ICU_ENTRY_POINT_RENAME(ultag_isExtensionSubtags)
 #define ultag_isLanguageSubtag U_ICU_ENTRY_POINT_RENAME(ultag_isLanguageSubtag)
@@ -3734,6 +3762,8 @@
 #define uset_getSerializedRange U_ICU_ENTRY_POINT_RENAME(uset_getSerializedRange)
 #define uset_getSerializedRangeCount U_ICU_ENTRY_POINT_RENAME(uset_getSerializedRangeCount)
 #define uset_getSerializedSet U_ICU_ENTRY_POINT_RENAME(uset_getSerializedSet)
+#define uset_getString U_ICU_ENTRY_POINT_RENAME(uset_getString)
+#define uset_getStringCount U_ICU_ENTRY_POINT_RENAME(uset_getStringCount)
 #define uset_hasStrings U_ICU_ENTRY_POINT_RENAME(uset_hasStrings)
 #define uset_indexOf U_ICU_ENTRY_POINT_RENAME(uset_indexOf)
 #define uset_isEmpty U_ICU_ENTRY_POINT_RENAME(uset_isEmpty)
@@ -3767,11 +3797,11 @@
 #define usnum_multiplyByPowerOfTen U_ICU_ENTRY_POINT_RENAME(usnum_multiplyByPowerOfTen)
 #define usnum_openForInt64 U_ICU_ENTRY_POINT_RENAME(usnum_openForInt64)
 #define usnum_roundTo U_ICU_ENTRY_POINT_RENAME(usnum_roundTo)
+#define usnum_setMaximumIntegerDigits U_ICU_ENTRY_POINT_RENAME(usnum_setMaximumIntegerDigits)
 #define usnum_setMinimumFractionDigits U_ICU_ENTRY_POINT_RENAME(usnum_setMinimumFractionDigits)
 #define usnum_setMinimumIntegerDigits U_ICU_ENTRY_POINT_RENAME(usnum_setMinimumIntegerDigits)
 #define usnum_setSign U_ICU_ENTRY_POINT_RENAME(usnum_setSign)
 #define usnum_setToInt64 U_ICU_ENTRY_POINT_RENAME(usnum_setToInt64)
-#define usnum_truncateStart U_ICU_ENTRY_POINT_RENAME(usnum_truncateStart)
 #define usnumf_close U_ICU_ENTRY_POINT_RENAME(usnumf_close)
 #define usnumf_format U_ICU_ENTRY_POINT_RENAME(usnumf_format)
 #define usnumf_formatInt64 U_ICU_ENTRY_POINT_RENAME(usnumf_formatInt64)
@@ -3988,7 +4018,7 @@
 #define ztrans_setFrom U_ICU_ENTRY_POINT_RENAME(ztrans_setFrom)
 #define ztrans_setTime U_ICU_ENTRY_POINT_RENAME(ztrans_setTime)
 #define ztrans_setTo U_ICU_ENTRY_POINT_RENAME(ztrans_setTo)
-#endif
+#endif // APPLE_ICU_CHANGES
 
 #endif /* !(defined(_MSC_VER) && defined(__INTELLISENSE__)) */
 #endif /* U_DISABLE_RENAMING */

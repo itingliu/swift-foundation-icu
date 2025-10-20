@@ -8,11 +8,18 @@
 #include <_foundation_unicode/numberformatter.h>
 #include "number_patternstring.h"
 #include "uresimp.h"
+#if APPLE_ICU_CHANGES
+// rdar://126991186 (Problems with grouping in unum_ functions when specifying patterns)
+#include "number_utils.h"
+#endif
 
 using namespace icu;
 using namespace icu::number;
 using namespace icu::number::impl;
 
+#if !APPLE_ICU_CHANGES
+// rdar://126991186 (Problems with grouping in unum_ functions when specifying patterns)
+// Apple moves this function to number_utils so that it can be made available outside this file
 namespace {
 
 int16_t getMinGroupingForLocale(const Locale& locale) {
@@ -33,6 +40,7 @@ int16_t getMinGroupingForLocale(const Locale& locale) {
 }
 
 }
+#endif
 
 Grouper Grouper::forStrategy(UNumberGroupingStrategy grouping) {
     switch (grouping) {
@@ -69,6 +77,15 @@ Grouper Grouper::forProperties(const DecimalFormatProperties& properties) {
 }
 
 void Grouper::setLocaleData(const impl::ParsedPatternInfo &patternInfo, const Locale& locale) {
+#if APPLE_ICU_CHANGES
+    if (fMinGrouping == -2) {
+        fMinGrouping = utils::getMinGroupingForLocale(locale);
+    } else if (fMinGrouping == -3) {
+        fMinGrouping = static_cast<int16_t>(uprv_max(2, utils::getMinGroupingForLocale(locale)));
+    } else {
+        // leave fMinGrouping alone
+    }
+#else
     if (fMinGrouping == -2) {
         fMinGrouping = getMinGroupingForLocale(locale);
     } else if (fMinGrouping == -3) {
@@ -76,11 +93,12 @@ void Grouper::setLocaleData(const impl::ParsedPatternInfo &patternInfo, const Lo
     } else {
         // leave fMinGrouping alone
     }
+#endif // APPLE_ICU_CHANGES
     if (fGrouping1 != -2 && fGrouping2 != -4) {
 #if APPLE_ICU_CHANGES
-// rdar:/
+// rdar:/ (later modified for rdar://126991186)
         if (fMinGrouping == -2) { // add test rdar://49808819
-            fMinGrouping = getMinGroupingForLocale(locale);
+            fMinGrouping = utils::getMinGroupingForLocale(locale);
         }
 #endif  // APPLE_ICU_CHANGES
         return;
@@ -89,7 +107,7 @@ void Grouper::setLocaleData(const impl::ParsedPatternInfo &patternInfo, const Lo
     auto grouping2 = static_cast<int16_t> ((patternInfo.positive.groupingSizes >> 16) & 0xffff);
     auto grouping3 = static_cast<int16_t> ((patternInfo.positive.groupingSizes >> 32) & 0xffff);
     if (grouping2 == -1) {
-        grouping1 = fGrouping1 == -4 ? (short) 3 : (short) -1;
+        grouping1 = fGrouping1 == -4 ? static_cast<short>(3) : static_cast<short>(-1);
     }
     if (grouping3 == -1) {
         grouping2 = grouping1;

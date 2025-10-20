@@ -93,15 +93,13 @@ class IFixedDecimal;
 class FieldPositionIteratorHandler;
 class FormattedStringBuilder;
 
-namespace numparse {
-namespace impl {
+namespace numparse::impl {
 
 // Forward declarations:
 class NumberParserImpl;
 class MultiplierParseHandler;
 
-}
-}
+} // namespace numparse::impl
 
 namespace units {
 
@@ -1327,16 +1325,6 @@ class U_I18N_API SymbolsWrapper : public UMemory {
 
 #ifndef U_HIDE_INTERNAL_API
 
-#if APPLE_ICU_CHANGES
-// rdar://
-    /**
-     * Set whether DecimalFormatSymbols copy is deep (clone)
-     * or shallow (pointer copy). Apple rdar://49955427
-     * @internal
-     */
-    void setDFSShallowCopy(UBool shallow);
-#endif  // APPLE_ICU_CHANGES
-
     /**
      * The provided object is copied, but we do not adopt it.
      * @internal
@@ -1377,12 +1365,7 @@ class U_I18N_API SymbolsWrapper : public UMemory {
 
     /** @internal */
     UBool copyErrorTo(UErrorCode &status) const {
-#if APPLE_ICU_CHANGES
-// rdar://
-        if ((fType == SYMPTR_DFS || fType == SYMPTR_DFS_SHALLOWCOPY) && fPtr.dfs == nullptr) {
-#else
         if (fType == SYMPTR_DFS && fPtr.dfs == nullptr) {
-#endif  // APPLE_ICU_CHANGES
             status = U_MEMORY_ALLOCATION_ERROR;
             return true;
         } else if (fType == SYMPTR_NS && fPtr.ns == nullptr) {
@@ -1394,12 +1377,7 @@ class U_I18N_API SymbolsWrapper : public UMemory {
 
   private:
     enum SymbolsPointerType {
-#if APPLE_ICU_CHANGES
-// rdar://
-        SYMPTR_NONE, SYMPTR_DFS, SYMPTR_NS, SYMPTR_DFS_SHALLOWCOPY // Apple rdar://49955427 add SHALLOWCOPY
-#else
         SYMPTR_NONE, SYMPTR_DFS, SYMPTR_NS
-#endif  // APPLE_ICU_CHANGES
     } fType;
 
     union {
@@ -2567,11 +2545,18 @@ class U_I18N_API UnlocalizedNumberFormatter
     explicit UnlocalizedNumberFormatter(
             NumberFormatterSettings<UnlocalizedNumberFormatter>&& src) noexcept;
 
+    explicit UnlocalizedNumberFormatter(const impl::MacroProps &macros);
+
+    explicit UnlocalizedNumberFormatter(impl::MacroProps &&macros);
+
     // To give the fluent setters access to this class's constructor:
     friend class NumberFormatterSettings<UnlocalizedNumberFormatter>;
 
     // To give NumberFormatter::with() access to this class's constructor:
     friend class NumberFormatter;
+
+    // To give LNF::withoutLocale() access to this class's constructor:
+    friend class LocalizedNumberFormatter;
 };
 
 /**
@@ -2629,15 +2614,6 @@ class U_I18N_API LocalizedNumberFormatter
 
 #ifndef U_HIDE_INTERNAL_API
 
-#if APPLE_ICU_CHANGES
-// rdar://
-    /**
-     * Set whether DecimalFormatSymbols copy is deep (clone)
-     * or shallow (pointer copy). Apple rdar://49955427
-     * @internal
-     */
-    void setDFSShallowCopy(UBool shallow);
-#endif  // APPLE_ICU_CHANGES
             
     /**
      * @internal
@@ -2682,6 +2658,25 @@ class U_I18N_API LocalizedNumberFormatter
      * @stable ICU 62
      */
     Format* toFormat(UErrorCode& status) const;
+
+#ifndef U_HIDE_DRAFT_API
+    /**
+     * Disassociate the locale from this formatter.
+     *
+     * @return The fluent chain.
+     * @draft ICU 75
+     */
+    UnlocalizedNumberFormatter withoutLocale() const &;
+
+    /**
+     * Overload of withoutLocale() for use on an rvalue reference.
+     *
+     * @return The fluent chain.
+     * @see #withoutLocale
+     * @draft ICU 75
+     */
+    UnlocalizedNumberFormatter withoutLocale() &&;
+#endif // U_HIDE_DRAFT_API
 
     /**
      * Default constructor: puts the formatter into a valid but undefined state.

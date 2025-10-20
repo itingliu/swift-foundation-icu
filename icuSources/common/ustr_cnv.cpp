@@ -39,16 +39,26 @@ u_getDefaultConverter(UErrorCode *status)
 {
     UConverter *converter = nullptr;
     
+#ifdef APPLE_ICU_CHANGES // rdar://128709166
+    icu::umtx_lock(nullptr); // all gDefaultConverter access should be inside lock
+    if (gDefaultConverter != nullptr) {
+#else
     if (gDefaultConverter != nullptr) {
         icu::umtx_lock(nullptr);
-        
+#endif
+
         /* need to check to make sure it wasn't taken out from under us */
         if (gDefaultConverter != nullptr) {
             converter = gDefaultConverter;
             gDefaultConverter = nullptr;
         }
+#ifdef APPLE_ICU_CHANGES // rdar://128709166
+    }
+    icu::umtx_unlock(nullptr);
+#else
         icu::umtx_unlock(nullptr);
     }
+#endif
 
     /* if the cache was empty, create a converter */
     if(converter == nullptr) {
@@ -65,19 +75,34 @@ u_getDefaultConverter(UErrorCode *status)
 U_CAPI void U_EXPORT2
 u_releaseDefaultConverter(UConverter *converter)
 {
+#ifdef APPLE_ICU_CHANGES // rdar://128709166
+    icu::umtx_lock(nullptr); // all gDefaultConverter access should be inside locks
     if(gDefaultConverter == nullptr) {
+        icu::umtx_unlock(nullptr); // ucnv_enableCleanup() uses a mutex, so unlock now...
+#else
+    if(gDefaultConverter == nullptr) {
+#endif
         if (converter != nullptr) {
             ucnv_reset(converter);
         }
         ucnv_enableCleanup();
+#ifdef APPLE_ICU_CHANGES // rdar://128709166
+        icu::umtx_lock(nullptr); // ...and lock again before we access gDefaultConverter again
+#else
         icu::umtx_lock(nullptr);
+#endif
         if(gDefaultConverter == nullptr) {
             gDefaultConverter = converter;
             converter = nullptr;
         }
+#ifdef APPLE_ICU_CHANGES // rdar://128709166
+    }
+    icu::umtx_unlock(nullptr);
+#else
         icu::umtx_unlock(nullptr);
     }
-
+#endif
+        
     if(converter != nullptr) {
         ucnv_close(converter);
     }

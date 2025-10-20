@@ -63,6 +63,8 @@ var buildSettings: [CXXSetting] = [
   .define("ICU_DATA_DIR", to: "\"/usr/share/icu/\""),
   .define("USE_PACKAGE_DATA", to: "1"),
   .define("APPLE_ICU_CHANGES", to: "1"),
+  .define("UCHAR_TYPE", to: "char16_t"),
+  .define("U_PLATFORM_IS_DARWIN_BASED", to: "0"),
 
   .headerSearchPath("common"),
   .headerSearchPath("io"),
@@ -101,5 +103,5 @@ let package = Package(
       linkerSettings: linkerSettings
     )
   ],
-  cxxLanguageStandard: .cxx14
+  cxxLanguageStandard: .cxx17
 )
